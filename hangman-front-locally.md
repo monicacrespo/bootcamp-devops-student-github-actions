@@ -44,7 +44,7 @@ $ npm start
 
 It’ll run on localhost on port 8080, and we can browse to see its output
 
-![Hangman](hangman-front-locally.JPG)
+![Hangman](./images/hangman-front-locally.JPG)
 
 We also have a unit test. Let's run this with npm.
 
