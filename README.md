@@ -117,6 +117,16 @@ git push origin ci-newworkflow
 
 3. Create a pull request for this branch. After the request has been created, Actions will initiate our workflow, resulting in a failure run. The reason is because the `StartGame` unit test located on `hangman-front/src/components/start-game.spec.tsx` file, has an error. 
 
+   GitHub Action runs displayed on the Actions tab 
+
+   ![](./images/hangman-front-actions-tab-ci-workflow-failure.JPG)
+
+   And logs within each step
+
+   ![](./images/hangman-front-actions-tab-ci-workflow-failure-1.JPG)
+
+   ![](./images/hangman-front-actions-tab-ci-workflow-failure-2.JPG)
+
 4. Fix the unit test, and push it, resulting in a successful run.
    Before the fix
    ``` 
@@ -126,15 +136,11 @@ git push origin ci-newworkflow
    ```
    expect(items).toHaveLength(2);
    ```
+   ![](./images/hangman-front-actions-tab-ci-workflow-success-1.JPG)
+
+   ![](./images/hangman-front-actions-tab-ci-workflow-success-2.JPG)
+
 5. Merge it to the main branch.
-
-GitHub Action runs displayed on the Actions tab 
-
-![](./images/01_02_actions.png)
-
-And logs within each step
-
-![](./images/01_02_actions.png)
 
 <a name="cd"></a>
 ## 3. CD Workflow - MUST
@@ -143,6 +149,103 @@ The workflow will do the following tasks:
 
 * Create a new Docker image 
 * Publish that image in GitHub Container Registry
+
+### Workflow for building Docker images 
+
+#### workflow_dispatch
+The `.github\workflows\cd-hangman-front.yaml` workflow uses the `workflow_dispatch` event that allows you to manually trigger a GitHub Action, without having to push or create a pull request.
+
+```
+name: Exercise 2 - Docker build and push
+ 
+on:
+  workflow_dispatch:
+    inputs:
+      working-directory:
+        description: 'Working directory to build a Docker Image and Push to Docker Hub'       
+        default: 'hangman-front'
+        type: choice
+        required: true
+        options:
+          - 'hangman-front'
+          - 'hangman-api'
+```
+
+To run you workflow go to the Actions tab of your repository and click on the "Run workflow" button:
+
+![Workflow Dispatch](./images/hangman-front-actions-tab-cd-run-workflow.JPG)
+
+![Workflow Dispatch](./images/hangman-front-actions-tab-cd-run-workflow-UI.JPG)
+
+
+#### Environment Variables
+It does use the following environment variables:
+```
+jobs:
+  build_and_push_to_registry:
+    name: Build and push Docker image to GitHub Packages
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_USER: binarylavender
+      DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+  
+    steps:
+      # date and time (remember ':' is not allowed in a tag) 20240304.215427
+      - name: Get current date
+        run: echo "CURRENT_DATE=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV 
+```
+There are three env variables:
+* DOCKER_USER. Docker Hub username
+* DOCKER_PASSWORD. We’re using our Docker Hub password as `secret`, which we can add it as value in our repository settings. This value is encrypted and open decrypted when being used during our workflow’s execution, so it isn't exposed in the workflow file. For more information, see [Using secrets in GitHub Actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
+* CURRENT_DATE. It will get the current date, using this `%Y%m%d.%H%M%S` format, store it in the GITHUB_ENV, and automatically makes it available to all subsequent actions in the current job. 
+  The currently running action cannot access the updated env variable. 
+  
+  NOTE that `$(command)` is POSIX shell syntax for "run command and substitute its output". date is a standard Linux/Unix command, the +FORMAT syntax tells it in which format it should output the date. See also: [date manpage](https://manpages.debian.org/bullseye/coreutils/date.1.en.html).
+
+  ```
+  CURRENT_DATE: 20240308.2213
+  DOCKER_METADATA_OUTPUT_VERSION: latest
+  DOCKER_METADATA_OUTPUT_TAGS: binarylavender/hangman-front:latest
+  binarylavender/hangman-front:20240308.2213
+  ```
+
+It also uses the following actions:
+* [checkout](https://github.com/actions/checkout) action will perform a local git clone of the repository.
+  ```
+  - name: Checkout the repo
+    uses: actions/checkout@v4
+  ```
+
+* [setup-buildx](https://github.com/docker/setup-buildx-action) action will create and boot a builder using by default the docker-container driver. This is not required but recommended using it to be able to build multi-platform images, export cache, etc.
+  ```
+  - name: Set up Docker Buildx
+    uses: docker/setup-buildx-action@v3
+  ```
+* [login](https://github.com/docker/login-action) action will take care to log in against the Docker registry. 
+  ```
+  - name: Login to Docker Hub
+    uses: docker/login-action@v3
+    with:
+        username: ${{ env.DOCKER_USER }}
+        password: ${{ env.DOCKER_PASSWORD }}
+  ```
+
+  We are using two env variables to provide credentials to log in to the DockerHub registry we want to store our Docker image. 
+
+* [build-push](https://github.com/docker/build-push-action) action to build the new Docker image using the Dockerfile from our repository, and, if the build succeeds, push the built image to Docker official Container registry (Docker Hub).
+
+  ```
+  - name: Build and push Docker Image
+    uses: docker/build-push-action@v5
+    with:
+        context: ./${{ inputs.working-directory }}
+        file: ./${{ inputs.working-directory }}/Dockerfile
+        push: true
+        tags: ${{ env.DOCKER_USER }}/${{ inputs.working-directory }}:${{ env.CURRENT_DATE }}
+  ```
+  The build-push-action options required for GitHub Packages are:
+    * context: Defines the build's context as the set of files located in the specified path.
+    * push: If set to true, the image will be pushed to the registry if it is built successfully.
 
 <a name="e2e"></a>
 ## 4. Tests e2e Workflow - NICE TO HAVE
