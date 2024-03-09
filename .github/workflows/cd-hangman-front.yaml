@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_USER: binarylavender
-      DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
       
     steps:
       # date and time (remember ':' is not allowed in a tag) 20240304.215427
@@ -41,7 +40,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_USER }}
-          password: ${{ env.DOCKER_PASSWORD }}      
+          password: ${{ secrets.DOCKER_PASSWORD }}      
       - name: Build and push Docker Image
         uses: docker/build-push-action@v5
         with:
