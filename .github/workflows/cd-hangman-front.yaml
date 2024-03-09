@@ -23,7 +23,7 @@ jobs:
       # date and time (remember ':' is not allowed in a tag) 20240304.215427
       - name: Set date tag
         run: |
-          echo "CURRENT_DATE=$(date +'%Y%m%d.%H%M')" >> $GITHUB_ENV
+          echo "CURRENT_DATE=$(date +'%Y%m%d-%H%M')" >> $GITHUB_ENV
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -32,6 +32,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}} 
             type=raw,value=${{ env.CURRENT_DATE }}
+            type=raw,value=${{date 'YYYYMMDD-HHmmss' }}
       - name: Checkout the repo
         uses: actions/checkout@v4
       - name: Set up Docker Buildx
