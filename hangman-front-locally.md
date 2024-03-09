@@ -1,10 +1,15 @@
-## Running locally hangman-front app and unit tests
+# Hangman run locally 
+1. [Running locally hangman-front app and unit tests](#locally)
+2. [Running locally e2e tests](#e2e)
+
+<a name="locally"></a>
+## 1. Running locally hangman-front app and unit tests
 
 To build and run the tests manually of the `hangman-front` application do the following steps:
 Start by cloning that repository and taking a look at it.
 
 ```bash
-$ git clone https://github.com/monicacrespo/bootcamp-devops-student-cicd.git
+$ git clone https://github.com/monicacrespo/bootcamp-devops-student-github-actions.git
 $ cd hangman-front
 ```
 
@@ -23,7 +28,7 @@ $ npm start
 [type-check:watch] 20:50:33 - Found 0 errors. Watching for file changes.
 [start:dev       ] <i> [webpack-dev-server] Project is running at:
 [start:dev       ] <i> [webpack-dev-server] Loopback: http://localhost:8080/, http://127.0.0.1:8080/
-[start:dev       ] <i> [webpack-dev-server] Content not from webpack is served from 'C:\_gitrepos\bootcamp-devops-student-cicd\hangman-front\public' directory
+[start:dev       ] <i> [webpack-dev-server] Content not from webpack is served from 'C:\_gitrepos\bootcamp-devops-student-github-actions\hangman-front\public' directory
 [start:dev       ] asset app.js 4.31 MiB [emitted] (name: app)
 [start:dev       ] asset index.html 314 bytes [emitted]
 [start:dev       ] runtime modules 28.4 KiB 14 modules
@@ -62,3 +67,19 @@ Test Suites: 1 passed, 1 total
 Tests:       1 passed, 1 total
 Snapshots:   0 total
 ```
+
+<a name="e2e"></a>
+## 2. Running locally e2e tests
+To run the e2e tests follow these steps:
+
+1. The front and the api must be up by running the following commands:
+   
+    ```
+    docker run -d -p 3001:3000 binarylavender/hangman-api:latest
+    docker run -d -p 8080:8080 -e API_URL=http://localhost:3001 binarylavender/hangman-front:latest
+    ```
+2. To run the end to end tests run the following commands:
+    ```
+    $ cd hangman-e2e/e2e
+    $ npm run open
+    ```

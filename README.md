@@ -205,15 +205,21 @@ There are two env variables:
       type=raw,value=${{ env.CURRENT_DATE }}
 ```
 
-[docker/metadata-action@v5](https://github.com/docker/metadata-action) is a GitHub Action to extract metadata from Git reference and GitHub events. This action is used with `Docker Build Push` action to tag and label Docker images.
+[docker/metadata-action@v5](https://github.com/docker/metadata-action) is used with `Docker Build Push` action to tag and label Docker images.
+It will generate one or two tags for the resulting build. The action will also generate labels that will help Github associate the image with the source repository.
 
-[{{is_default_branch}}](https://github.com/docker/metadata-action?tab=readme-ov-file#is_default_branch) returns true if the branch that triggered the workflow run is the default one, in this repository is `main`, otherwise false.
-{{date '<format>' tz='<timezone>'}}
+On the default branch, in this repository is `main`, it will tag with 
+* `latest` by using
+  * [custom tag type=raw](https://github.com/docker/metadata-action?tab=readme-ov-file#typeraw)
+  * [{{is_default_branch}}](https://github.com/docker/metadata-action?tab=readme-ov-file#is_default_branch) returns true if the branch that triggered the workflow run is the default one, otherwise false.
+* date, e.g. `20240308.2213` by using
+  * [custom tag type=raw](https://github.com/docker/metadata-action?tab=readme-ov-file#typeraw)
+  * CURRENT_DATE set up in the previous `Get current date` action.
+
+Any other branches, it will tag with only the current date.
+
 ![](./images/hangman-front-actions-tab-cd-metadata.JPG)
 
-On the default (main) branch it will tag with latest
-https://github.com/docker/metadata-action?tab=readme-ov-file#typeraw
-Output custom tags according to your needs.
 #### Set up Docker Buildx action
 
 ```yaml
@@ -223,37 +229,39 @@ Output custom tags according to your needs.
 [setup-buildx](https://github.com/docker/setup-buildx-action) is a GitHub Action to create and boot a builder using by default the docker-container driver. This is not required but recommended using it to be able to build multi-platform images, export cache, etc.
 
 #### Login to Docker Hub action 
-  ```yaml
-  - name: Login to Docker Hub
-    uses: docker/login-action@v3
-    with:
-        username: ${{ env.DOCKER_USER }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-  ```
+```yaml
+- name: Login to Docker Hub
+  uses: docker/login-action@v3
+  with:
+    username: ${{ env.DOCKER_USER }}
+    password: ${{ secrets.DOCKER_PASSWORD }}
+ ```
 [login](https://github.com/docker/login-action) action will take care to log in against the Docker registry.
 We are using the `DOCKER_USER` env variable and the `DOCKER_PASSWORD` `secret` to provide credentials to log in to the DockerHub registry we want to store our Docker image. The Docker Hub password value is encrypted and open decrypted when being used during our workflow’s execution, so it isn't exposed in the workflow file.
 
 #### Build and push Docker Image
-* [build-push](https://github.com/docker/build-push-action) action to build the new Docker image using the Dockerfile from our repository, and, if the build succeeds, push the built image to Docker official Container registry (Docker Hub).
+```
+- name: Build and push Docker Image
+  uses: docker/build-push-action@v5
+  with:
+    context: ./${{ inputs.working-directory }}
+    file: ./${{ inputs.working-directory }}/Dockerfile
+    push: true
+    tags: ${{ env.DOCKER_USER }}/${{ inputs.working-directory }}:${{ env.CURRENT_DATE }}
+  ```
 
-  ```
-  - name: Build and push Docker Image
-    uses: docker/build-push-action@v5
-    with:
-        context: ./${{ inputs.working-directory }}
-        file: ./${{ inputs.working-directory }}/Dockerfile
-        push: true
-        tags: ${{ env.DOCKER_USER }}/${{ inputs.working-directory }}:${{ env.CURRENT_DATE }}
-  ```
-  The build-push-action options required for GitHub Packages are:
-    * context: Defines the build's context as the set of files located in the specified path.
-    * push: If set to true, the image will be pushed to the registry if it is built successfully.
+[build-push](https://github.com/docker/build-push-action) action will build the new Docker image. If the build succeeds, will push the built image to Docker official Container registry (Docker Hub).
+
+The build-push-action main options required for GitHub Packages are:
+  * context: Defines the build's context as the set of files located in the specified path.
+  * push: If set to true, the image will be pushed to the registry if it is built successfully.
+  * tags generated in the "Docker meta" action, for example, `binarylavender/hangman-front:latest,binarylavender/hangman-front:20240309.0944`.
 
 ### Run the workflow
 To run you workflow follow these steps:
-1. Add the DOCKER_PASSWORD secret's value in our repository settings. For more information, see [Using secrets in GitHub Actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
+1. Add the DOCKER_PASSWORD secret's value in our repository settings. For more information, see [Creating secrets for a repository](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository).
 
-2. Go to the Actions tab of your repository, click on the "Exercise 2 - Docker build and push" workflows, and then "Run workflow" button:
+2. Go to the Actions tab of your repository, click on the "Exercise 2 - Docker build and push" workflow, and then "Run workflow" button:
 
 ![Workflow Dispatch](./images/hangman-front-actions-tab-cd-run-workflow.JPG)
 
@@ -266,19 +274,7 @@ We've been asked by LemonCode team to create a [e2e tests workflow](https://gith
 
 You can use [Docker Compose](https://docs.docker.com/compose/gettingstarted/) or [Cypress action](https://github.com/cypress-io/github-action) to run the tests located [here](https://github.com/Lemoncode/bootcamp-devops-lemoncode/tree/master/03-cd/03-github-actions/.start-code/hangman-e2e/e2e).
 
-To run the e2e tests follow these steps:
 
-1. The front and the api must be up by running the following commands:
-   
-    ```
-    docker run -d -p 3001:3000 binarylavender/hangman-api:latest
-    docker run -d -p 8080:8080 -e API_URL=http://localhost:3001 binarylavender/hangman-front:latest
-    ```
-2. To run the end to end tests run the following commands:
-    ```
-    $ cd hangman-e2e/e2e
-    $ npm run open
-    ```
 <a name="js"></a>
 ## 5. Custom JavaScript Action - NICE TO HAVE
 We've been asked by LemonCode team to create a [custom JavaScript Action](https://github.com/Lemoncode/bootcamp-devops-lemoncode/tree/master/03-cd/exercises#4-crea-una-custom-javascript-action---opcional) that runs when an issue contains the `motivate` label. The action will print by console a motivational message. You could use this free [API](https://type.fit/#%7B%22text%22:%22Welcome%20to%20Type.fit!%5CnA%20keyboard%20typing%20practice%20web%20application.%5CnDesigned%20for%20the%20improvement%20of%20typing%20speed%20along%20with%20accuracy.%22%7D). You can find more information of how to create a una custom JS action in this [link](https://docs.github.com/es/actions/creating-actions/creating-a-javascript-action).
