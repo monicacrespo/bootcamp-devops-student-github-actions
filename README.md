@@ -171,26 +171,24 @@ on:
           - 'hangman-api'
 ```
 
-#### Environment Variables
+#### Environment Variable
 
 ```yaml
 jobs:
   build_and_push_to_registry:
     name: Build and push Docker image to GitHub Packages
-    runs-on: ubuntu-latest
-    env:
-      DOCKER_USER: binarylavender     
+    runs-on: ubuntu-latest   
   
     steps:
       # date and time (remember ':' is not allowed in a tag) 20240304.215427
       - name: Get current date
-        run: echo "CURRENT_DATE=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV 
+        run: |
+          echo "CURRENT_DATE=$(date +'%Y%m%d-%H%M')" >> $GITHUB_ENV
 ```
-There are two env variables:
-* DOCKER_USER. Docker Hub username
-* CURRENT_DATE. It will get the current date, using this `%Y%m%d.%H%M%S` format (e.g. `20240308.2213` for `08/03/2024 22:13`), store it in the GITHUB_ENV, and automatically makes it available to all subsequent actions in the current job. The currently running action cannot access the updated env variable. 
+
+CURRENT_DATE. It will get the current date, using the `%Y%m%d-%H%M` format (e.g. `20240308-2213` for `08/03/2024 22:13`), store it in the GITHUB_ENV, and automatically makes it available to all subsequent actions in the current job. The currently running action cannot access the updated env variable. 
   
-   NOTE that `$(command)` is POSIX shell syntax for "run command and substitute its output". date is a standard Linux/Unix command, the +FORMAT syntax tells it in which format it should output the date. See also: [date manpage](https://manpages.debian.org/bullseye/coreutils/date.1.en.html).
+NOTE that `$(command)` is POSIX shell syntax for "run command and substitute its output". date is a standard Linux/Unix command, the +FORMAT syntax tells it in which format it should output the date. See also: [date manpage](https://manpages.debian.org/bullseye/coreutils/date.1.en.html).
 
 #### Docker Metadata action
 
@@ -199,7 +197,7 @@ There are two env variables:
   id: meta
   uses: docker/metadata-action@v5
   with:
-    images: ${{ env.DOCKER_USER }}/${{ inputs.working-directory }}
+    images: ${{ secrets.DOCKER_USER }}/${{ inputs.working-directory }}
     tags: |
       type=raw,value=latest,enable={{is_default_branch}} 
       type=raw,value=${{ env.CURRENT_DATE }}
@@ -212,7 +210,7 @@ On the default branch, in this repository is `main`, it will tag with
 * `latest` by using
   * [custom tag type=raw](https://github.com/docker/metadata-action?tab=readme-ov-file#typeraw)
   * [{{is_default_branch}}](https://github.com/docker/metadata-action?tab=readme-ov-file#is_default_branch) returns true if the branch that triggered the workflow run is the default one, otherwise false.
-* date, e.g. `20240308.2213` by using
+* date, e.g. `20240308-2213` by using
   * [custom tag type=raw](https://github.com/docker/metadata-action?tab=readme-ov-file#typeraw)
   * CURRENT_DATE set up in the previous `Get current date` action.
 
@@ -233,11 +231,11 @@ Any other branches, it will tag with only the current date.
 - name: Login to Docker Hub
   uses: docker/login-action@v3
   with:
-    username: ${{ env.DOCKER_USER }}
+    username: ${{ secrets.DOCKER_USER }}
     password: ${{ secrets.DOCKER_PASSWORD }}
  ```
 [login](https://github.com/docker/login-action) action will take care to log in against the Docker registry.
-We are using the `DOCKER_USER` env variable and the `DOCKER_PASSWORD` `secret` to provide credentials to log in to the DockerHub registry we want to store our Docker image. The Docker Hub password value is encrypted and open decrypted when being used during our workflow’s execution, so it isn't exposed in the workflow file.
+We are using the `DOCKER_USER` and `DOCKER_PASSWORD` as `secrets` to provide credentials to log in to the DockerHub registry we want to store our Docker image. Both values are encrypted and open decrypted when being used during our workflow’s execution, so they are not exposed in the workflow file.
 
 #### Build and push Docker Image
 ```
@@ -274,6 +272,43 @@ We've been asked by LemonCode team to create a [e2e tests workflow](https://gith
 
 You can use [Docker Compose](https://docs.docker.com/compose/gettingstarted/) or [Cypress action](https://github.com/cypress-io/github-action) to run the tests located [here](https://github.com/Lemoncode/bootcamp-devops-lemoncode/tree/master/03-cd/03-github-actions/.start-code/hangman-e2e/e2e).
 
+### Workflow for running e2e tests 
+```yaml
+name: Exercise 3 - Run e2e tests
+ 
+on:
+  workflow_dispatch:
+
+jobs:
+  run_e2e_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Run Api service in background        
+        run: |
+          docker run -d -p 3001:3000 ${{ secrets.DOCKER_USER }}/hangman-api:latest           
+      - name: Run Front service in background 
+        run: |            
+          docker run -d -p 8080:8080 -e API_URL=http://localhost:3001 ${{ secrets.DOCKER_USER }}/hangman-front:latest            
+      - name: Run e2e tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: ./hangman-e2e/e2e
+```
+
+### Run the workflow
+We can use both our hangman-front and hangman-api together to run our end-to-end tests.
+1. Build and push a Docker image of the hangman-api to Docker Hub registry. To do so, run manually the `Exercise 2 - Docker build and push` selecting hangman-api as a working directory.
+2. Run manually the `Exercise 3 - Run e2e tests`.
+
+![e2e](./images/hangman-front-actions-tab-e2e.JPG)
 
 <a name="js"></a>
 ## 5. Custom JavaScript Action - NICE TO HAVE

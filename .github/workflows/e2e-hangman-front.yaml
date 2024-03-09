@@ -15,12 +15,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Run Api service in background        
+      - name: Run Api service in background
         run: |
-          docker run -d -p 3001:3000 ${{ secrets.DOCKER_USER }}/hangman-api:latest           
+          docker run -d -p 3001:3000 ${{ secrets.DOCKER_USER }}/hangman-api:latest
       - name: Run Front service
-        run: |            
-          docker run -d -p 8080:8080 -e API_URL=http://localhost:3001 ${{ secrets.DOCKER_USER }}/hangman-front:latest            
+        run: |
+          docker run -d -p 8080:8080 -e API_URL=http://localhost:3001 ${{ secrets.DOCKER_USER }}/hangman-front:latest        
       - name: Run e2e tests
         uses: cypress-io/github-action@v6
         with:
