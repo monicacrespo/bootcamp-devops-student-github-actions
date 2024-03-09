@@ -20,7 +20,7 @@ jobs:
           docker run -d -p 3001:3000 ${{ secrets.DOCKER_USER }}/hangman-api:latest           
       - name: Run Front service
         run: |            
-          docker run -d -p 8080:8080 -e API_URL=http://localhost:3001 } ${{ secrets.DOCKER_USER }}/hangman-front:latest            
+          docker run -d -p 8080:8080 -e API_URL=http://localhost:3001 ${{ secrets.DOCKER_USER }}/hangman-front:latest            
       - name: Run e2e tests
         uses: cypress-io/github-action@v6
         with:
