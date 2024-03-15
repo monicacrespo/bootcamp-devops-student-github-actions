@@ -302,6 +302,7 @@ jobs:
         with:
           working-directory: ./hangman-e2e/e2e
 ```
+[cypress-io](https://github.com/cypress-io/github-action) action takes the project's npm package manager lock file, installs dependencies and caches these dependencies for future use. It then proceeds to run Cypress end-to-end tests with the built-in Electron browser and provides a test summary after completion.
 
 ### Run the workflow
 We can use both our hangman-front and hangman-api together to run our end-to-end tests.

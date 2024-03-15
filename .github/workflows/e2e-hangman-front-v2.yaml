@@ -1,0 +1,21 @@
+name: Exercise 3 - Run e2e tests using Docker Compose
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run_e2e_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: test-integration
+        working-directory: ./hangman-front
+        run: |
+          docker-compose up --abort-on-container-exit --exit-code-from e2e

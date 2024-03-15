@@ -82,4 +82,9 @@ To run the e2e tests follow these steps:
     ```
     $ cd hangman-e2e/e2e
     $ npm run open
+    > @pumpbit-quiz-maker/e2e@1.0.0 open
+    > cypress open
+    
+    
+    Missing baseUrl in compilerOptions. tsconfig-paths will be skipped
     ```
