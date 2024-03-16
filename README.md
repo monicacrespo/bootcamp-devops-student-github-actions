@@ -154,15 +154,16 @@ The workflow will do the following tasks:
 
 #### workflow_dispatch
 The `.github\workflows\cd-hangman-front.yaml` workflow uses the `workflow_dispatch` event that allows you to manually trigger a GitHub Action, without having to push or create a pull request.
+Then, it checks out the GitHub repository, uses the login-action twice to log in to both registries and generates tags and labels with the metadata-action action. Then the build-push-action action builds and pushes the Docker image to Docker Hub and the Container registry.
 
-```
+```yaml
 name: Exercise 2 - Docker build and push
- 
+
 on:
   workflow_dispatch:
     inputs:
       working-directory:
-        description: 'Working directory to build a Docker Image and Push to Docker Hub'       
+        description: 'Working directory to build a Docker Image'
         default: 'hangman-front'
         type: choice
         required: true
@@ -171,14 +172,29 @@ on:
           - 'hangman-api'
 ```
 
-#### Environment Variable
+#### Control permissions for GITHUB_TOKEN
 
 ```yaml
 jobs:
-  build_and_push_to_registry:
-    name: Build and push Docker image to GitHub Packages
-    runs-on: ubuntu-latest   
-  
+  build_and_push_to_registries:
+    name: Build and push Docker image to multiple registries
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+```
+GitHub Actions now lets you control the permissions granted to the GITHUB_TOKEN secret.
+
+The GITHUB_TOKEN is an automatically generated secret that lets you make authenticated calls to the GitHub API in your workflow runs. Actions generates a new token for each job and expires the token when a job completes.
+
+Sets the permissions granted to the GITHUB_TOKEN for the actions in this job.
+
+* `packages: write` allows the job to ppload and publish packages to GitHub Packages.
+* `contents: read` is sufficient for any workflows that simply need to clone and build.
+
+#### Environment Variable
+
+```yaml
     steps:
       # date and time (remember ':' is not allowed in a tag) 20240304.215427
       - name: Get current date
@@ -190,34 +206,6 @@ CURRENT_DATE. It will get the current date, using the `%Y%m%d-%H%M` format (e.g.
   
 NOTE that `$(command)` is POSIX shell syntax for "run command and substitute its output". date is a standard Linux/Unix command, the +FORMAT syntax tells it in which format it should output the date. See also: [date manpage](https://manpages.debian.org/bullseye/coreutils/date.1.en.html).
 
-#### Docker Metadata action
-
-```yaml
-- name: Docker meta
-  id: meta
-  uses: docker/metadata-action@v5
-  with:
-    images: ${{ secrets.DOCKER_USER }}/${{ inputs.working-directory }}
-    tags: |
-      type=raw,value=latest,enable={{is_default_branch}} 
-      type=raw,value=${{ env.CURRENT_DATE }}
-```
-
-[docker/metadata-action@v5](https://github.com/docker/metadata-action) is used with `Docker Build Push` action to tag and label Docker images.
-It will generate one or two tags for the resulting build. The action will also generate labels that will help Github associate the image with the source repository.
-
-On the default branch, in this repository is `main`, it will tag with 
-* `latest` by using
-  * [custom tag type=raw](https://github.com/docker/metadata-action?tab=readme-ov-file#typeraw)
-  * [{{is_default_branch}}](https://github.com/docker/metadata-action?tab=readme-ov-file#is_default_branch) returns true if the branch that triggered the workflow run is the default one, otherwise false.
-* date, e.g. `20240308-2213` by using
-  * [custom tag type=raw](https://github.com/docker/metadata-action?tab=readme-ov-file#typeraw)
-  * CURRENT_DATE set up in the previous `Get current date` action.
-
-Any other branches, it will tag with only the current date.
-
-![](./images/hangman-front-actions-tab-cd-metadata.JPG)
-
 #### Set up Docker Buildx action
 
 ```yaml
@@ -226,7 +214,7 @@ Any other branches, it will tag with only the current date.
 ```
 [setup-buildx](https://github.com/docker/setup-buildx-action) is a GitHub Action to create and boot a builder using by default the docker-container driver. This is not required but recommended using it to be able to build multi-platform images, export cache, etc.
 
-#### Login to Docker Hub action 
+#### Log in to Docker Hub action 
 ```yaml
 - name: Login to Docker Hub
   uses: docker/login-action@v3
@@ -237,18 +225,64 @@ Any other branches, it will tag with only the current date.
 [login](https://github.com/docker/login-action) action will take care to log in against the Docker registry.
 We are using the `DOCKER_USER` and `DOCKER_PASSWORD` as `secrets` to provide credentials to log in to the DockerHub registry we want to store our Docker image. Both values are encrypted and open decrypted when being used during our workflow’s execution, so they are not exposed in the workflow file.
 
-#### Build and push Docker Image
+#### Log in to Docker Hub action 
+
+```yaml
+name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 ```
-- name: Build and push Docker Image
+Uses the docker/login-action action to log in to the Container registry registry using the account and password that will publish the packages. Once published, the packages are scoped to the account defined here.
+
+#### Docker Metadata action
+
+```yaml
+- name: Extract metadata (tags, labels) for Docker
+  id: meta
+  uses: docker/metadata-action@v5
+  with:
+    # list of Docker images to use as base name for tags
+    images: |
+      ${{ secrets.DOCKER_USER }}/${{ inputs.working-directory }}
+      ghcr.io/${{ github.repository_owner }}/${{ inputs.working-directory }}
+    # generate Docker tags based on the following events/attributes
+    tags: |
+      type=raw,value=latest,enable={{is_default_branch}} 
+      type=raw,value=${{ env.CURRENT_DATE }}
+```
+
+This step uses [docker/metadata-action@v5](https://github.com/docker/metadata-action) to extract tags and labels that will be applied to the specified image. The id "meta" allows the output of this step to be referenced in a subsequent step. The images value provides the base name for the tags and labels.
+
+On the default branch, in this repository is `main`, the action will generate the following two tags: 
+* `latest` by using
+  * [custom tag type=raw](https://github.com/docker/metadata-action?tab=readme-ov-file#typeraw)
+  * [{{is_default_branch}}](https://github.com/docker/metadata-action?tab=readme-ov-file#is_default_branch) returns true if the branch that triggered the workflow run is the default one, otherwise false.
+* date, e.g. `20240308-2213` by using
+  * [custom tag type=raw](https://github.com/docker/metadata-action?tab=readme-ov-file#typeraw)
+  * CURRENT_DATE set up in the previous `Get current date` action.
+
+Any other branches, it will generate only one tag with the current date.
+
+![](./images/hangman-front-actions-tab-cd-metadata.JPG)
+
+
+#### Build and push Docker Image
+
+```yaml
+- name: Build and push Docker Images
   uses: docker/build-push-action@v5
   with:
+    push: true
     context: ./${{ inputs.working-directory }}
     file: ./${{ inputs.working-directory }}/Dockerfile
-    push: true
-    tags: ${{ env.DOCKER_USER }}/${{ inputs.working-directory }}:${{ env.CURRENT_DATE }}
+    tags: ${{ steps.meta.outputs.tags }}
+    labels: ${{ steps.meta.outputs.labels }}
   ```
 
-[build-push](https://github.com/docker/build-push-action) action will build the new Docker image. If the build succeeds, will push the built image to Docker official Container registry (Docker Hub).
+This step uses the [build-push](https://github.com/docker/build-push-action) action to build the image, based on your repository's Dockerfile. If the build succeeds, it pushes the image to GitHub Packages and Docker official Container registry (Docker Hub). It uses the context parameter to define the build's context as the set of files located in the specified path. It uses the tags and labels parameters to tag and label the image with the output from the "meta" step.
 
 The build-push-action main options required for GitHub Packages are:
   * context: Defines the build's context as the set of files located in the specified path.
@@ -296,7 +330,7 @@ jobs:
           docker run -d -p 3001:3000 ${{ secrets.DOCKER_USER }}/hangman-api:latest           
       - name: Run Front service in background 
         run: |            
-          docker run -d -p 8080:8080 -e API_URL=http://localhost:3001 ${{ secrets.DOCKER_USER }}/hangman-front:latest            
+          docker run -d -p 8080:8080 -e API_URL=http://localhost:3001 ${{ secrets.DOCKER_USER }}/hangman-front:latest           
       - name: Run e2e tests
         uses: cypress-io/github-action@v6
         with:

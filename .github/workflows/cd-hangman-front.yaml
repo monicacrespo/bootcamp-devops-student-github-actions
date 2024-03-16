@@ -1,10 +1,10 @@
 name: Exercise 2 - Docker build and push
- 
+
 on:
-  workflow_dispatch:   
+  workflow_dispatch:
     inputs:
       working-directory:
-        description: 'Working directory to build a Docker Image and Push to Docker Hub'       
+        description: 'Working directory to build a Docker Image'
         default: 'hangman-front'
         type: choice
         required: true
@@ -14,7 +14,7 @@ on:
 
 jobs:
   build_and_push_to_registries:
-    name: Build and push Docker image to Docker Hub registry
+    name: Build and push Docker image to multiple registries
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -56,6 +56,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}} 
             type=raw,value=${{ env.CURRENT_DATE }}
+
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
@@ -63,12 +64,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker Image
+      - name: Build and push Docker Images
         uses: docker/build-push-action@v5
         with:
+          push: true 
           context: ./${{ inputs.working-directory }}
           file: ./${{ inputs.working-directory }}/Dockerfile
-          push: true  
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
          
