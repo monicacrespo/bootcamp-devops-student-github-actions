@@ -19,5 +19,5 @@ RUN npm ci &&\
 
 #RUN npx cypress verify
 #RUN npm run open
-#ENTRYPOINT ["npm", "run", "cypress:run"]
-ENTRYPOINT  sleep 10; npm run cypress:run
+ENTRYPOINT ["npm", "run", "cypress:run"]
+##ENTRYPOINT  sleep 10; npm run cypress:run

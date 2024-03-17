@@ -1,0 +1,40 @@
+name: Exercise 3 - Run e2e tests using Docker Compose
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run_e2e_tests:
+    runs-on: ubuntu-latest
+
+    services:
+      hangman-api:
+        image: binarylavender/hangman-api:latest
+        ports:
+          - 3001:3000
+        credentials:
+          username: ${{ secrets.DOCKER_USER  }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      hangman-front:
+        image: binarylavender/hangman-front:latest
+        credentials:
+          username: ${{ secrets.DOCKER_USER  }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        ports:
+          - 8080:8080
+        env:
+          API_URL: http://localhost:3001
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16
+      - name: Running integration tests
+        working-directory: ./hangman-e2e/e2e
+        env:
+          API_URL: http://localhost:3001
+        run: |
+          npm run cypress:run
+
+    
