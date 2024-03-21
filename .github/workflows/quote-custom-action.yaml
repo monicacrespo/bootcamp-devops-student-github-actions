@@ -1,0 +1,22 @@
+name: Quote Custom Action 
+on:
+  issues:
+    types:
+      - labeled
+jobs:
+  add-comment:
+    if: github.event.label.name == 'motivate'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Get quote using Custom Action
+        id: quote
+        uses: monicacrespo/bootcamp-devops-inspirational-quote-javascript-action@1.0.0
+      - name: Add comment in issue
+        run: gh issue comment "$NUMBER" --body "$BODY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: ${{ steps.quote.outputs.quote }}
