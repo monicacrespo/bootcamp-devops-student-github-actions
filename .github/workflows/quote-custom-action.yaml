@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Get quote using Custom Action
         id: quote
-        uses: monicacrespo/bootcamp-devops-inspirational-quote-javascript-action@v1.0.0
+        uses: monicacrespo/bootcamp-devops-inspirational-quote-javascript-action@v1.0
       - name: Add comment in issue
         run: gh issue comment "$NUMBER" --body "$BODY"
         env:
