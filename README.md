@@ -24,7 +24,9 @@ GitHub Actions uses YAML syntax to define the workflow. Each workflow is stored 
 │   ├── workflows (new)
 │     ├── cd-hangman-front.yaml (new)
 │     ├── ci-hangman-front.yaml (new)
-│     ├── hangman-e2e-integration.yaml (new)
+│     ├── e2e-hangman-front.yaml (new)
+│     ├── e2e-hangman-front-v2.yaml (new)
+│     ├── quote-custom-action.yaml (new)
 ├── hangman-api (existing)
 │   ├── ...
 │   ├── .env 
@@ -37,10 +39,12 @@ GitHub Actions uses YAML syntax to define the workflow. Each workflow is stored 
 │       ├── .env 
 │       ├── cypress-16.dockerfile 
 │       ├── e2e.dockerfile
+│       ├── Dockerfile (new)
 │       ├── package-lock.json 
 │       ├── package.json 
 ├── hangman-front (existing)
 │   ├── ...
+│   ├── docker-compose.yml (new) 
 │   ├── Dockerfile 
 ├── hangman-front-locally.md (new)
 ├── hangman-front-locally.JPG (new)
@@ -350,3 +354,224 @@ We can use both our hangman-front and hangman-api together to run our end-to-end
 We've been asked by LemonCode team to create a [custom JavaScript Action](https://github.com/Lemoncode/bootcamp-devops-lemoncode/tree/master/03-cd/exercises#4-crea-una-custom-javascript-action---opcional) that runs when an issue contains the `motivate` label. The action will print by console a motivational message. You could use this free [API](https://type.fit/#%7B%22text%22:%22Welcome%20to%20Type.fit!%5CnA%20keyboard%20typing%20practice%20web%20application.%5CnDesigned%20for%20the%20improvement%20of%20typing%20speed%20along%20with%20accuracy.%22%7D). You can find more information of how to create a una custom JS action in this [link](https://docs.github.com/es/actions/creating-actions/creating-a-javascript-action).
 
 `curl https://type.fit/api/quotes`
+
+### Creating a JavaScript action
+These are the steps I've followed to create a JavaScript action:
+#### Prerequistes
+1. Download and install Node.js 20.x, which includes npm. https://nodejs.org/en/download/
+
+2. Create a new public repository on GitHub.com called `bootcamp-devops-inspirational-quote-javascript-action`
+
+3. Clone your repository to your computer. 
+
+4. From your terminal, change directories into your new repository.
+   `cd bootcamp-devops-inspirational-quote-javascript-action`
+
+5. From your terminal, initialize the directory with npm to generate a `package.json` file. `npm init -y`
+
+#### Creating an action metadata file
+Create a new file named `action.yaml` in the bootcamp-devops-inspirational-quote-javascript-action directory with the following code. 
+```yaml
+name: 'Inspirational quote'
+description: 'Get an inspirational quote'
+outputs:
+  quote: # id of output
+    description: 'A random inspirational quote message'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+```
+This file defines the quote output. It also tells the action runner how to start running this JavaScript action.
+
+#### Adding actions toolkit packages
+The actions toolkit is a collection of Node.js packages that allow you to quickly build JavaScript actions with more consistency.
+
+The toolkit @actions/core package provides an interface to the workflow commands, input and output variables, exit statuses, and debug messages.
+
+The toolkit also offers a @actions/github package that returns an authenticated Octokit REST client and access to GitHub Actions contexts.
+
+At your terminal, install the actions toolkit core and github packages.
+```shell
+npm install @actions/core
+npm install @actions/github
+```
+Now you should see a node_modules directory with the modules you just installed and a package-lock.json file with the installed module dependencies and the versions of each installed module.
+
+GitHub downloads each action run in a workflow during runtime and executes it as a complete package of code before you can use workflow commands like run to interact with the runner machine. This means you must include any package dependencies required to run the JavaScript code. You'll need to check in the toolkit core and github packages to your action's repository.
+
+Checking in your node_modules directory can cause problems. As an alternative, you can use a tool called @vercel/ncc to compile your code and modules into one file used for distribution. Install vercel/ncc by running this command in your terminal. `npm i -g @vercel/ncc`
+
+#### Writing the action code
+Add a new file called index.js, with the following code.
+```JavaScript
+const core = require('@actions/core');
+const github = require('@actions/github');
+
+// api for quotes
+const url = 'https://type.fit/api/quotes';
+
+try {
+    // fetch the data from api
+    fetch(url)
+        // convert response to json
+        .then((response) => response.json())
+        // store it in data array
+        .then((data) => {
+            // generate a random number between 0 and the length of the data array
+            const index = Math.floor(Math.random() * data.length);
+            // store the quote present at the randomly generated index
+            let quote = data[index].text;
+            // check if the last char does not end with dot (.).   
+            if(quote.slice(-1)!== '.'){
+                // add a dot at the end of the quote 
+                quote = quote.concat('.');
+            }
+
+            // store the author of the respective quote
+            let author = data[index].author;        
+            if(author==null)
+            {
+                author = "Anonymous";
+            }
+
+            // store the quote and the author
+            let result = quote.concat(" ", author);            
+            console.log(`${result}`);    
+            core.setOutput('quote', result);
+        })
+        .catch((error) => {
+            console.log(error);
+            core.setFailed(error.message);
+    });
+    
+    // Get the JSON webhook payload for the event that triggered the workflow
+    const payload = JSON.stringify(github.context.payload, undefined, 2)
+    console.log(`The event payload: ${payload}`);
+
+} catch (error) {
+    core.setFailed(error.message);
+}
+```
+You can run the above code locally by running the following command:
+```bash
+$ node index.js
+The event payload: {}
+Be the chief but never the lord. Lao Tzu, type.fit
+
+::set-output name=quote::Be the chief but never the lord. Lao Tzu, type.fit
+```
+
+#### Creating a README
+To let people know how to use your action, you can create a README file. In your `bootcamp-devops-inspirational-quote-javascript-action` directory, create a README.md file that specifies the following information:
+
+* A detailed description of what the action does.
+* Required input and output arguments.
+* An example of how to use your action in a workflow.
+
+```Markdown
+# Get inspirational quote javascript action
+
+This action prints and returns a random quote and the author of the respective quote to the log.
+
+## Inputs
+
+This action does not use any input.
+
+## Outputs
+
+### `quote`
+
+A random inspirational quote.
+
+## Example usage
+```yaml               
+    uses: monicacrespo/bootcamp-devops-inspirational-quote-javascript-action@v1.0
+```
+
+
+#### Commit, tag, and push your action to GitHub
+
+First compile your code and modules into one file for distribution.
+```
+$ ncc build index.js
+```
+
+You'll see a new dist/index.js file with your code and the compiled modules.
+
+
+Then, from your terminal, commit your action.yml, index.js, dist/index.js, node_modules, package.json, package-lock.json, .gitignore and README.md files.
+
+It's best practice to also add a version tag for releases of your action. 
+
+```
+$ git add .
+git commit -m "My first action is ready"
+git tag -a -m "My first action release" v1.0
+git push --follow-tags
+```
+
+On GitHub.com, navigate to the main page of the repository and [create a Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository#creating-a-release) with the tag `v1.0`. 
+
+![](./images/custom-action-release.jpg)
+
+### Testing out your public action in an workflow
+The below workflow called `quote-custom-action.yaml` run the `monicacrespo/bootcamp-devops-inspirational-quote-javascript-action@v1.0` public action within an external repository.
+
+```yaml
+name: Quote Custom Action 
+on:
+  issues:
+    types:
+      - labeled
+```
+The `issues` event does have activity types that give you more control over when your workflow should run. Use on.<event_name>.types to define the type of event activity that will trigger a workflow run.
+
+For example, the above workflow triggers when an issue is labeled. 
+
+```yaml
+jobs:
+  add-comment:
+    if: github.event.label.name == 'motivate'
+    runs-on: ubuntu-latest
+```
+This workflow is triggered when the `motivate` label is added to an issue.
+
+```yaml
+    permissions:
+      issues: write
+```
+You need to have write access to this repository to commenting on an issue when a label is added. 
+
+```yaml
+    steps:
+      - name: Get quote using Custom Action
+        id: quote
+        uses: monicacrespo/bootcamp-devops-inspirational-quote-javascript-action@v1.0
+``` 
+The runner will download the `bootcamp-devops-inspirational-quote-javascript-action@v1.0` action from your public repository and then execute it to get an inspirational quote.
+
+```yaml
+      - name: Add comment in issue
+        run: gh issue comment "$NUMBER" --body "$BODY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: ${{ steps.quote.outputs.quote }}
+```
+Every time an issue in this repository is labeled, this workflow will run. If the label that was added is `motivate`, the `gh issue comment` command will add the comment that you specified to the issue. That comment is the inspirational quote from the previous step.
+
+#### Testing the workflow
+
+1. Open an issue in your repository. Label the issue with the `motivate` label.
+
+2. View the history of your workflow runs, to see the workflow run triggered by labeling the issue.
+
+   ![](./images/custom-action-workflow.jpg)
+
+3. When the workflow completes, check the logs, and see that the output of the JavaScript action is a quote, `A house divided against itself cannot stand. Abraham Lincoln, type.fit`. And that quote is being added to the issue.
+
+   ![](./images/custom-action-logs.jpg). 
+
+4. Go to the issue that you labeled and it should have a comment added.
+   ![](./images/custom-action-issue.jpg)

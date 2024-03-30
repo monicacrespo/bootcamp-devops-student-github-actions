@@ -14,8 +14,7 @@ RUN chmod +x wait-for-it.sh
 
 ENV CI=1 
 
-RUN npm ci &&\
-    npx cypress info
+RUN npm ci
 
 #RUN npx cypress verify
 #RUN npm run open
