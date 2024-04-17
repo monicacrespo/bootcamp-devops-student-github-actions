@@ -33,7 +33,7 @@ services:
       context: ../hangman-e2e/e2e
       dockerfile: Dockerfile
     environment:
-      - HANGMAN_FRONT_HOST=http://localhost:8080
+      - HANGMAN_FRONT_HOST=hangman-front
     # - CYPRESS_baseUrl=http://hangman-front
       - API_URL=http://localhost:3001    
     #command:
