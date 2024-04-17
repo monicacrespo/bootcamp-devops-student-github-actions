@@ -27,22 +27,23 @@ services:
 
   e2e:
     container_name: cypress
+    depends_on:
+      - hangman-front
     build:
       context: ../hangman-e2e/e2e
       dockerfile: Dockerfile
     environment:
+      - HANGMAN_FRONT_HOST=http://localhost:8080
     # - CYPRESS_baseUrl=http://hangman-front
-      - API_URL=http://localhost:3001
-    depends_on:
-      - hangman-front
+      - API_URL=http://localhost:3001    
     #command:
     #  [
-    #    "./wait-for-it.sh",
-    #    "http://localhost:8080",
-    #    "--strict",
-    #    "--timeout=30",
-    #    "--",
-    #    "npx","cypress","run"
+    #   "./wait-for-it.sh",
+    #   "http://localhost:8080",
+    #   "--strict",
+    #   "--timeout=30",
+    #   "--",
+    #   "npx","cypress","run"
     #  ]
     #command: npx cypress run
     networks:

@@ -345,7 +345,7 @@ jobs:
 ### Run the workflow
 We can use both our hangman-front and hangman-api together to run our end-to-end tests.
 1. Build and push a Docker image of the hangman-api to Docker Hub registry. To do so, run manually the `Exercise 2 - Docker build and push` selecting hangman-api as a working directory.
-2. Run manually the `Exercise 3 - Run e2e tests`.
+2. Run manually the `Exercise 3 - Run e2e tests` named `e2e-hangman-front.yaml`.
 
 ![e2e](./images/hangman-front-actions-tab-e2e.JPG)
 
@@ -402,7 +402,7 @@ GitHub downloads each action run in a workflow during runtime and executes it as
 Checking in your node_modules directory can cause problems. As an alternative, you can use a tool called @vercel/ncc to compile your code and modules into one file used for distribution. Install vercel/ncc by running this command in your terminal. `npm i -g @vercel/ncc`
 
 #### Writing the action code
-Add a new file called index.js, with the following code.
+index.js file code
 ```JavaScript
 const core = require('@actions/core');
 const github = require('@actions/github');
@@ -461,8 +461,8 @@ Be the chief but never the lord. Lao Tzu, type.fit
 ::set-output name=quote::Be the chief but never the lord. Lao Tzu, type.fit
 ```
 
-#### Creating a README
-To let people know how to use your action, you can create a README file. In your `bootcamp-devops-inspirational-quote-javascript-action` directory, create a README.md file that specifies the following information:
+#### README file
+To let people know how to use your action, this is the README.md file in your `bootcamp-devops-inspirational-quote-javascript-action` repository, that specifies the following information:
 
 * A detailed description of what the action does.
 * Required input and output arguments.
