@@ -15,9 +15,9 @@ RUN chmod +x ./wait-for-it.sh ./docker-entrypoint.sh
 
 ENV CI=1 
 
-#RUN npm ci
+RUN npm ci
 
-RUN npm ci -w @pumpbit-quiz-maker/e2e
+#RUN npm ci -w @pumpbit-quiz-maker/e2e
 
 #RUN npx cypress verify
 #RUN npm run open
