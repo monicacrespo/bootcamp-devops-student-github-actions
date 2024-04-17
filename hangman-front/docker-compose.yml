@@ -34,7 +34,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - HANGMAN_FRONT_HOST=hangman-front
-    # - CYPRESS_baseUrl=http://hangman-front
+      - CYPRESS_BASE_URL=http://hangman-front:8080
       - API_URL=http://localhost:3001    
     #command:
     #  [

@@ -26,4 +26,4 @@ RUN npm ci
 
 # It _must_ use the JSON-array syntax
 ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["node", "index.js"]
+CMD ["npx", "cypress", "run"]
