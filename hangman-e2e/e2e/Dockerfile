@@ -17,13 +17,6 @@ ENV CI=1
 
 RUN npm ci
 
-#RUN npm ci -w @pumpbit-quiz-maker/e2e
-
-#RUN npx cypress verify
-#RUN npm run open
-#ENTRYPOINT ["npm", "run", "cypress:run"]
-#ENTRYPOINT  sleep 10; npm run cypress:run
-
-# It _must_ use the JSON-array syntax
+# It must use the JSON-array syntax
 ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["npx", "cypress", "run"]
