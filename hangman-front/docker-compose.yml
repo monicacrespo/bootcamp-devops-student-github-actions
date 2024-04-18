@@ -35,7 +35,6 @@ services:
     environment:
       - HANGMAN_FRONT_HOST=hangman-front
       - CYPRESS_BASE_URL=http://hangman-front:8080
-      #- API_URL=http://localhost:3001
     #command:
     #  [
     #   "./wait-for-it.sh",

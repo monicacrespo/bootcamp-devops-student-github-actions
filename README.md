@@ -2,8 +2,9 @@
 1. [Introduction](#intro)
 2. [CI Workflow - MUST](#ci)
 3. [CD Workflow - MUST](#cd)
-4. [Tests e2e Workflow - NICE TO HAVE](#e2e)
-5. [Custom JavaScript Action - NICE TO HAVE](#js)
+4. [Tests e2e Workflow using Cypress GitHub Action - NICE TO HAVE](#e2e)
+5. [Tests e2e Workflow using Docker Compose - CHALLENGE](#e2e-docker-compose)
+6. [Custom JavaScript Action - NICE TO HAVE](#js)
 
 <a name="intro"></a>
 ## 1. Introduction
@@ -38,10 +39,12 @@ GitHub Actions uses YAML syntax to define the workflow. Each workflow is stored 
 │   ├── e2e
 │       ├── .env 
 │       ├── cypress-16.dockerfile 
-│       ├── e2e.dockerfile
+│       ├── docker-entrypoint.sh (new)
 │       ├── Dockerfile (new)
+│       ├── e2e.dockerfile
 │       ├── package-lock.json 
 │       ├── package.json 
+│       ├── wait-for-it.sh (new)
 ├── hangman-front (existing)
 │   ├── ...
 │   ├── docker-compose.yml (new) 
@@ -304,13 +307,12 @@ To run you workflow follow these steps:
 ![Workflow Dispatch](./images/hangman-front-actions-tab-cd-run-workflow-UI.JPG)
 
 <a name="e2e"></a>
-## 4. Tests e2e Workflow - NICE TO HAVE
+## 4. Tests e2e Workflow using Cypress GitHub Action - NICE TO HAVE
 
-We've been asked by LemonCode team to create a [e2e tests workflow](https://github.com/Lemoncode/bootcamp-devops-lemoncode/tree/master/03-cd/exercises#3-crea-un-workflow-que-ejecute-tests-e2e---opcional).
+We've been asked by LemonCode team to create an [e2e tests workflow](https://github.com/Lemoncode/bootcamp-devops-lemoncode/tree/master/03-cd/exercises#3-crea-un-workflow-que-ejecute-tests-e2e---opcional) to run the tests located [here](https://github.com/Lemoncode/bootcamp-devops-lemoncode/tree/master/03-cd/03-github-actions/.start-code/hangman-e2e/e2e).
 
-You can use [Docker Compose](https://docs.docker.com/compose/gettingstarted/) or [Cypress action](https://github.com/cypress-io/github-action) to run the tests located [here](https://github.com/Lemoncode/bootcamp-devops-lemoncode/tree/master/03-cd/03-github-actions/.start-code/hangman-e2e/e2e).
 
-### Workflow for running e2e tests 
+### Workflow for running e2e tests using Cypress action
 ```yaml
 name: Exercise 3 - Run e2e tests
  
@@ -349,8 +351,129 @@ We can use both our hangman-front and hangman-api together to run our end-to-end
 
 ![e2e](./images/hangman-front-actions-tab-e2e.JPG)
 
+<a name="e2e-docker-compose"></a>
+## 5. Tests e2e Workflow using Docker Compose - CHALLENGE
+
+e2e Dockerfile (hangman-e2e\e2e\Dockerfile)
+
+```
+FROM cypress/base:16
+
+WORKDIR /app
+
+COPY ./package.json .
+COPY ./package-lock.json .
+COPY ./cypress.config.ts .
+COPY ./tsconfig.json .
+COPY ./cypress ./cypress
+
+COPY ./wait-for-it.sh ./wait-for-it.sh
+COPY ./docker-entrypoint.sh ./docker-entrypoint.sh
+
+RUN chmod +x ./wait-for-it.sh ./docker-entrypoint.sh
+
+ENV CI=1 
+
+RUN npm ci
+
+# It must use the JSON-array syntax
+ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["npx", "cypress", "run"]
+```
+
+The key points here are:
+* The wait-for-it.sh and docker-entrypoint.sh shell scripts are copied into workdir, and run as an executable. So, the scripts need to be built into the image, and its standard startup sequence needs to know to run it.
+
+* There's a fairly common pattern of using an entrypoint script to do some initial setup, and then use exec "$@" to run the container's command as the main process. This lets you use the wait-for-it.sh script to wait for the frontend to be up, then run whatever the main command happens to be. 
+
+* The `docker-entrypoint.sh` script is executable, and it's the image's ENTRYPOINT
+
+The `docker-entrypoint.sh` script looks like:
+```powershell
+#!/bin/sh
+
+# Abort on any error (including if wait-for-it fails).
+set -e
+
+# Wait for the frontend to be up, if we know where it is.
+if [ -n "$HANGMAN_FRONT_HOST" ]; then
+  /app/wait-for-it.sh "$HANGMAN_FRONT_HOST:${HANGMAN_FRONT_PORT:-8080}"
+fi
+
+# Run the main container command.
+exec "$@"
+```
+
+In the docker-compose.yml the configuration is added to say where the frontend is `HANGMAN_FRONT_HOST`, but there is not need to override command.
+
+docker-compose file
+```yml
+version: '3.9'
+
+networks:
+  integration-tests:
+    driver: bridge
+
+services:
+  hangman-front:
+    image: binarylavender/hangman-front:latest
+    container_name: hangman-front
+    depends_on:
+      - hangman-api
+    ports:
+      - "8080:8080"
+    environment:
+      API_URL: http://localhost:3001
+    networks:
+      - integration-tests
+
+  hangman-api:
+      image: binarylavender/hangman-api:latest
+      container_name: hangman-api
+      ports:
+        - "3001:3000"
+      networks:
+        - integration-tests
+
+  e2e:
+    container_name: cypress
+    depends_on:
+      - hangman-front
+    build:
+      context: ../hangman-e2e/e2e
+      dockerfile: Dockerfile
+    environment:
+      - HANGMAN_FRONT_HOST=hangman-front
+      - CYPRESS_BASE_URL=http://hangman-front:8080
+    networks:
+      - integration-tests
+```
+
+```yml
+name: Exercise 3 - Run e2e tests using Docker Compose
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run_e2e_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: test-integration
+        working-directory: ./hangman-front
+        run: |
+          docker-compose up --abort-on-container-exit --exit-code-from e2e
+```
 <a name="js"></a>
-## 5. Custom JavaScript Action - NICE TO HAVE
+## 6. Custom JavaScript Action - NICE TO HAVE
 We've been asked by LemonCode team to create a [custom JavaScript Action](https://github.com/Lemoncode/bootcamp-devops-lemoncode/tree/master/03-cd/exercises#4-crea-una-custom-javascript-action---opcional) that runs when an issue contains the `motivate` label. The action will print by console a motivational message. You could use this free [API](https://type.fit/#%7B%22text%22:%22Welcome%20to%20Type.fit!%5CnA%20keyboard%20typing%20practice%20web%20application.%5CnDesigned%20for%20the%20improvement%20of%20typing%20speed%20along%20with%20accuracy.%22%7D). You can find more information of how to create a una custom JS action in this [link](https://docs.github.com/es/actions/creating-actions/creating-a-javascript-action).
 
 `curl https://type.fit/api/quotes`
