@@ -1,4 +1,4 @@
-name: Quote Custom Action 
+name: Exercise 5 - Quote Custom Action 
 on:
   issues:
     types:

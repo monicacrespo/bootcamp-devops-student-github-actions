@@ -1,4 +1,4 @@
-name: Exercise 3 - Run e2e tests using Docker Compose
+name: Exercise 4 - Run e2e tests using Docker Compose
 
 on:
   workflow_dispatch:
