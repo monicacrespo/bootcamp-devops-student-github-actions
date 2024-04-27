@@ -25,7 +25,7 @@ We've been asked by LemonCode team to implement the solution of the following `C
 ### Exercise 1. CI Workflow - MUST
 
 * This exercise is to create a CI workflow that runs automatically when the following two events occur:
-   * There are changes on the hangman-front proyect   
+   * There are changes on the hangman-front project   
    * Pull request is made
 
    The workflow will do the following tasks:
@@ -33,7 +33,7 @@ We've been asked by LemonCode team to implement the solution of the following `C
    * Build the hangman-front project
    * Run unit tests
 
-* To run the front app locally and unit tests, look at the steps in [run-solution-locally](./hangman-front-locally.md).
+* To run the hangman-front app locally and unit tests, look at the steps in [run-solution-locally](./hangman-front-locally.md).
 
 * You can see the solution in [ci-workflow-must.md](https://github.com/monicacrespo/bootcamp-devops-student-github-actions/tree/main/1.ci-workflow-must.md).
 

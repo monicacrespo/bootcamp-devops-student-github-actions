@@ -1,0 +1,60 @@
+version: '3.9'
+
+networks:
+  integration-tests:
+    driver: bridge
+
+services:
+  hangman-front:
+    image: binarylavender/hangman-front:latest
+    container_name: hangman-front
+    depends_on:
+      hangman-api:    
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      API_URL: http://localhost:3001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+      interval: 2s
+      timeout: 60s
+      retries: 20
+    networks:
+      - integration-tests
+
+  hangman-api:
+      image: binarylavender/hangman-api:latest
+      container_name: hangman-api
+      ports:
+        - "3001:3000"
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:3001/ping"]
+        interval: 2s
+        timeout: 60s
+        retries: 20
+      networks:
+        - integration-tests
+
+  e2e:
+    container_name: cypress
+    depends_on:
+      hangman-front:
+        condition: service_healthy
+    build:
+      context: ../hangman-e2e/e2e
+      dockerfile: cypress-16.dockerfile
+    environment:
+    #  - HANGMAN_FRONT_HOST=hangman-front
+      - CYPRESS_BASE_URL=http://hangman-front:8080
+    #command:
+    #  [
+    #   "./wait-for-it.sh",
+    #   "http://hangman-front:8080",
+    #   "--strict",
+    #   "--timeout=30",
+    #   "--",
+    #   "npx","cypress","run"
+    #  ]
+    networks:
+      - integration-tests

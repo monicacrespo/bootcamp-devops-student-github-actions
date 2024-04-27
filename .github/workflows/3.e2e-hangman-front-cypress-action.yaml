@@ -1,4 +1,4 @@
-name: Exercise 3 - Run e2e tests
+name: Exercise 3 - Run e2e tests using Cypress Action
  
 on:
   workflow_dispatch:
