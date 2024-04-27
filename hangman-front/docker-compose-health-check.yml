@@ -40,15 +40,7 @@ services:
       dockerfile: cypress-16.dockerfile
     environment:
     #  - HANGMAN_FRONT_HOST=hangman-front
-      - CYPRESS_BASE_URL=http://hangman-front:8080
-    #command:
-    #  [
-    #   "./wait-for-it.sh",
-    #   "http://hangman-front:8080",
-    #   "--strict",
-    #   "--timeout=30",
-    #   "--",
-    #   "npx","cypress","run"
-    #  ]
+      - CYPRESS_BASE_URL=http://hangman-front:8080      
+    command: npx cypress run   
     networks:
       - integration-tests
