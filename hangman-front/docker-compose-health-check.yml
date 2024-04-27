@@ -9,8 +9,7 @@ services:
     image: binarylavender/hangman-front:latest
     container_name: hangman-front
     depends_on:
-      hangman-api:    
-        condition: service_healthy
+      - hangman-api
     ports:
       - "8080:8080"
     environment:
@@ -27,12 +26,7 @@ services:
       image: binarylavender/hangman-api:latest
       container_name: hangman-api
       ports:
-        - "3001:3000"
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:3001/ping"]
-        interval: 2s
-        timeout: 60s
-        retries: 20
+        - "3001:3000"      
       networks:
         - integration-tests
 
