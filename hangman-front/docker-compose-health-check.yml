@@ -37,7 +37,7 @@ services:
         condition: service_healthy
     build:
       context: ../hangman-e2e/e2e
-      dockerfile: cypress-16.dockerfile
+      dockerfile: cypress-16-e2e.dockerfile
     environment:
     #  - HANGMAN_FRONT_HOST=hangman-front
       - CYPRESS_BASE_URL=http://hangman-front:8080      
