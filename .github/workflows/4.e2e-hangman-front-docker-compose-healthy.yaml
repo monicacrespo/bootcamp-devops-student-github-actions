@@ -18,4 +18,4 @@ jobs:
       - name: test-integration
         working-directory: ./hangman-front
         run: |
-          docker compose up -f docker-compose.yml --abort-on-container-exit --exit-code-from e2e
+          docker compose -f docker-compose.yml --abort-on-container-exit --exit-code-from run e2e
