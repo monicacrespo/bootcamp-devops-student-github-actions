@@ -59,7 +59,21 @@ We've been asked by LemonCode team to implement the solution of the following `C
 ### Exercise 4. Tests e2e Workflow using Docker Compose - CHALLENGE
 
 * This exercise is to create a GitHub workflow to run end-to-end tests using Docker Compose. The event that will trigger the workflow is `workflow_dispatch`.
-* You can see the solution in [e2e-docker-compose-workflow-nice-to-have.md](https://github.com/monicacrespo/bootcamp-devops-student-github-actions/tree/main/4.e2e-docker-compose-workflow-nice-to-have.md).
+
+* We need to ensure that `hangman-api`, `hangman-front` and `hangman-e2e` services start in the correct order, which is the following:
+   1. `hangman-api` service
+   2. `hangman-front` depends on the `hangman-api` service. You want to ensure that the `hangman-api` starts and can accept connections before your `hangman-front` Node.js application starts. 
+   3. `e2e` depends on the `hangman-front` service.  The execution of the Cypress test runner needs to fire after the web `hangman-front` service connects and run its server.
+
+   These dependencies are specified using the `depends_on` option which is a valuable tool in Docker Compose for ensuring that services start-up in the correct order with dependiences in a healthy state.
+
+   However, `depends_on` only controls the startup order and does not guarantee service readiness by default. It doesn't wait until the container is in ready state. It only waits until the dependent container is in 'running' state. To verify the availability of dependent services before starting services that rely on them, use additional tools or techniques such as
+   * health checks in Docker Compose, or
+   * your own start shell script in the e2e Dockerfile ENTRYPOINT to wait until a depending container service starts.
+
+* You can see the solution using the native health check in Docker Compose in [e2e-docker-compose-workflow-health-check-nice-to-have.md](https://github.com/monicacrespo/bootcamp-devops-student-github-actions/tree/main/4.e2e-docker-compose-workflow-health-check-nice-to-have.md).
+
+* You can see the solution using an own custom health check shell script in [e2e-docker-compose-workflow-nice-to-have.md](https://github.com/monicacrespo/bootcamp-devops-student-github-actions/tree/main/4.e2e-docker-compose-workflow-nice-to-have.md).
 
 ### Exercise 5. Custom JavaScript Action - NICE TO HAVE
 
@@ -79,6 +93,7 @@ bootcamp-devops-student-github-actions
 │     ├── 1.ci-hangman-front.yaml (new - exercise 1)
 │     ├── 2.cd-hangman-front.yaml (new - exercise 2)
 │     ├── 3.e2e-hangman-front-cypress-action.yaml (new - exercise 3)
+│     ├── 4.e2e-hangman-front-docker-compose-health-check.yaml (new - exercise 4 - native health check)
 │     ├── 4.e2e-hangman-front-docker-compose.yaml (new - exercise 4)
 │     ├── 5.quote-custom-action.yaml (new - exercise 5)
 ├── hangman-api (existing)
@@ -91,7 +106,7 @@ bootcamp-devops-student-github-actions
 ├── hangman-e2e (existing)
 │   ├── e2e
 │       ├── .env 
-│       ├── cypress-16.dockerfile 
+│       ├── cypress-16-e2e.dockerfile (new - exercise 4 - native health check)
 │       ├── docker-entrypoint.sh (new - exercise 4)
 │       ├── Dockerfile (new - exercise 4)
 │       ├── e2e.dockerfile
@@ -100,11 +115,13 @@ bootcamp-devops-student-github-actions
 │       ├── wait-for-it.sh (new - exercise 4)
 ├── hangman-front (existing)
 │   ├── ...
+│   ├── docker-compose-health-check.yml (new - exercise 4 - native health check) 
 │   ├── docker-compose.yml (new - exercise 4) 
 │   ├── Dockerfile 
 ├── 1.ci-workflow-must.md (new - exercise 1)
 ├── 2.cd-workflow-must.md (new - exercise 2)
 ├── 3.e2e-cypress-workflow-nice-to-have.md (new - exercise 3)
+├── 4.e2e-docker-compose-workflow-health-check-nice-to-have.md (new - exercise 4 - native health check)
 ├── 4.e2e-docker-compose-workflow-nice-to-have.md (new - exercise 4)
 ├── 5.custom-javascript-action-nice-to-have.md (new - exercise 5)
 ├── hangman-front-locally.md (new)
