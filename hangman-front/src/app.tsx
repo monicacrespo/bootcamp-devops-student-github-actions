@@ -1,7 +1,7 @@
 import React from 'react';
 import { StartGameComponent } from './components';
 
-// comment
+// comment to test
 
 export const App: React.FunctionComponent = () => {
   return <StartGameComponent />;
