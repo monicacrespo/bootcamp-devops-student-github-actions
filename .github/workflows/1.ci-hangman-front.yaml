@@ -2,7 +2,6 @@ name: Exercise 1 - npm build and test
 
 on:   
   pull_request:
-    branches: [main]
     paths: ["hangman-front/**"]
 
 jobs:
